@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Flunt.Validations;
 using PaymentContext.Domain.ValueObjects;
 using PaymentContext.Shared.Entities;
 
@@ -9,18 +10,20 @@ namespace PaymentContext.Domain.Entities
   public class Student : Entity
   {
     private IList<Subscription> _subscriptions;
-    public Student(Name name, string document, Email email)
+    public Student(Name name, Document document, Email email)
     {
       Name = name;
       Document = document;
       Email = email;
       _subscriptions = new List<Subscription>();
 
+      AddNotifications(name, document, email);
+
 
     }
 
     public Name Name { get; private set; }
-    public string Document { get; private set; }
+    public Document Document { get; private set; }
     public Email Email { get; private set; }
     public Address Address { get; private set; }
     public IReadOnlyCollection<Subscription> Subscriptions { get { return _subscriptions.ToArray(); } }
@@ -28,8 +31,30 @@ namespace PaymentContext.Domain.Entities
     public void AddSubscription(Subscription subscription)
     {
 
+      var hasSubscriptionActive = false;
 
-      _subscriptions.Add(subscription);
+      foreach (var sub in _subscriptions)
+      {
+        if (sub.Active)
+        {
+          hasSubscriptionActive = true;
+        }
+      }
+
+      // if (hasSubscriptionActive)
+      // {
+      //   AddNotification("Student.Subscriptions", "Voce já tem uma assinatura ativa!");
+      //   return;
+      // }
+
+      AddNotifications(new Contract()
+      .Requires()
+      .IsFalse(hasSubscriptionActive, "Student.Subscriptions", "Voce já tem uma assinatura ativa!")
+      .IsLowerThan(0, subscription.Payments.Count, "Student.Subscription.Payments", "Esta assinatura não possui pagamento"));
+
+
+      if (Valid)
+        _subscriptions.Add(subscription);
     }
 
 
